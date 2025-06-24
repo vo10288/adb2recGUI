@@ -1,0 +1,481 @@
+#!/opt/virtualenv/computer_vision/bin/python3
+
+# by Antonio 'Visi@n' Broi - antonio@tsurugi-linux.org
+# https://tsurugi-linux.org
+# Version 1.0
+# 20250405_H1847
+
+# LICENSE M.I.T. https://opensource.org/licenses/MIT
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+# OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
+
+import sys
+from datetime import datetime
+from os import listdir
+from os.path import isdir, join, isfile, splitext
+from tkinter import *
+#import tkinter, Tkconstants, tkFileDialog
+import tkinter
+
+import tkinter as tk
+import sys
+import os
+import subprocess
+import sys, signal
+import time
+import googletrans
+from googletrans import Translator
+import subprocess
+import socket
+import argparse
+import locale
+
+os.environ["PYTHONIOENCODING"] = "utf-8" 
+myLocale=locale.setlocale(category=locale.LC_ALL, locale="en_US.UTF-8") 
+
+command = "jp2a /usr/share/icons/tsurugi/tsurugi.jpg"
+subprocess.Popen(command, shell=True)
+
+#############################################################
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-d", "--daemon", default="d",
+	help="You can change the first languange, default en")
+ap.add_argument("-1", "--lang1", default="en",
+	help="You can change the first languange, default en")
+ap.add_argument("-2", "--lang2", default="fr",
+	help="You can change the first languange, default fr")
+ap.add_argument("-3", "--lang3", default="it",
+	help="You can change the first languange, default it")
+ap.add_argument("-4", "--lang4", default="es",
+	help="You can change the first languange, default es")
+ap.add_argument("-t", "--time", default=int(3),
+	help="Time between one language and another, example in seconds 6.0 or 7.0 or 8.0 etc")
+
+args = vars(ap.parse_args())
+
+import os
+
+# Base directory
+base_dir = os.path.expanduser('~/02.computer_vision/04.video2ocr')
+
+# Crea le directory principali e secondarie
+subdirs = [
+    '~/02.computer_vision',
+    '~/02.computer_vision/04.video2ocr',
+    '~/02.computer_vision/04.video2ocr/screenshot',
+    '~/02.computer_vision/04.video2ocr/screenrecord',
+    '~/02.computer_vision/04.video2ocr/compressfiles',
+    '~/02.computer_vision/04.video2ocr/hashfiles'
+]
+
+for path in subdirs:
+    full_path = os.path.expanduser(path)
+    os.makedirs(full_path, exist_ok=True)
+
+# Spostati nella directory di lavoro principale
+os.chdir(base_dir)
+
+translator =  Translator()
+## interrupt all def or while cicle with CTRL-C
+
+# def signal_handler(signal, frame):
+#    print("\nprogram exiting gracefully")
+#    sys.exit(0)
+
+# signal.signal(signal.SIGINT, signal_handler)
+
+# os.chdir(os.path.expanduser('~'))
+
+def helpme():
+	global helpme
+	command = (' echo "Connect the cable to the Mobile Phone"')
+	subprocess.Popen(command, shell=True)
+	time.sleep(3.0)
+	command = (' echo "You need to enable the developer menu and enable the USB debug mode"')
+	subprocess.Popen(command, shell=True)
+
+def adb_connect_cable():
+	global adb_connect_cable
+	command = ('echo "You have chosen ADB Connect cable, please wait..."')
+	subprocess.Popen(command, shell=True)
+
+	command = ('adb devices -l')
+	subprocess.Popen(command, shell=True)
+
+	command = ('adb tcpip 7777')
+	subprocess.Popen(command, shell=True)
+	time.sleep(3.0)
+
+	command = ('echo "Now it\'s possible to disconnect the cable from Mobile Phone and to connect via the wifi network"')
+	subprocess.Popen(command, shell=True)
+
+def adb_connect_ip_wifi():
+	global adb_connect_ip_wifi
+
+	command = ('echo "You have chosen ADB Connect wifi, please wait..."')
+	subprocess.Popen(command, shell=True)
+
+	command = ('echo "Now connect the Mobile Phone to the wifi network and get the IP address"')
+	subprocess.Popen(command, shell=True)
+
+	command = ('echo "insert the PRIVATE IP type 192.168.x.x "')
+	subprocess.Popen(command, shell=True)
+
+	#command = ('read ip')
+	#subprocess.Popen(command, shell=True)
+	#time.sleep(3.0)
+	ip = input('Insert the local IP address of your Mobile Phone: ')
+	try:
+		socket.inet_aton(ip)
+		print("Valid IP")
+	except socket.error:
+		print("Invalid IP")
+
+	command = ('adb connect '+ip+':7777')
+	subprocess.Popen(command, shell=True)
+	time.sleep(1.0)
+
+	command = ('echo "adb connect '+ip+':7777"')
+	subprocess.Popen(command, shell=True)
+
+	command = ('echo "Now you can take screenshots or screenrecords from the Mobile Phone that is connected to your wifi network"')
+	subprocess.Popen(command, shell=True)
+
+def screenshot():
+	os.chdir(os.path.expanduser('~'))
+	
+	global screenshot
+	
+	command = ('adb devices -l > stdout.csv')
+	stdout = subprocess.Popen(command, shell=True)
+	time.sleep(2)
+	controllo = open('stdout.csv', 'r').read()
+	
+	
+	print('=========================================')
+	
+	print((controllo))
+	print('=========================================')
+	print('                                         ')
+	
+	if "device usb" in (controllo):
+		print('mobile device is connected!.... YOU ROCK')
+		os.chdir(os.path.expanduser('~'))
+		command = ('rm -f stdout.csv')
+		stdout = subprocess.Popen(command, shell=True)
+		
+		os.chdir(os.path.expanduser('/usr/local/bin/'))
+		command = ('./screenshot.sh')
+		subprocess.Popen(command, shell=True)
+	else:
+		print('Warning the device is not connected')
+	#controllo.close()	
+
+def screenshot_up():
+	
+	
+	os.chdir(os.path.expanduser('~'))
+	
+	global screenshot_up
+	
+	command = ('adb devices -l > stdout.csv')
+	stdout = subprocess.Popen(command, shell=True)
+	time.sleep(2)
+	controllo = open('stdout.csv', 'r').read()
+	
+	
+	print('=========================================')
+	print((controllo))
+	print('=========================================')
+	print('                                         ')
+	
+	if "device usb" in (controllo):
+		print('mobile device is connected!.... YOU ROCK')
+		os.chdir(os.path.expanduser('~'))
+		command = ('rm -f stdout.csv')
+		stdout = subprocess.Popen(command, shell=True)
+		
+		os.chdir(os.path.expanduser('/usr/local/bin/'))
+		command = ('./screenshot.sh up')
+		subprocess.Popen(command, shell=True)
+	else:
+		print('Warning the device is not connected')
+	#controllo.close()	
+
+def screenshot_down():
+	
+
+	os.chdir(os.path.expanduser('~'))
+	
+	global screenshot_down
+	
+	command = ('adb devices -l > stdout.csv')
+	stdout = subprocess.Popen(command, shell=True)
+	time.sleep(2)
+	controllo = open('stdout.csv', 'r').read()
+	
+	
+	print('=========================================')
+	
+	print((controllo))
+	print('=========================================')
+	print('                                         ')
+	
+	if "device usb" in (controllo):
+		print('mobile device is connected!.... YOU ROCK')
+		os.chdir(os.path.expanduser('~'))
+		command = ('rm -f stdout.csv')
+		stdout = subprocess.Popen(command, shell=True)
+		
+		os.chdir(os.path.expanduser('/usr/local/bin/'))
+		command = ('./screenshot.sh down')
+		subprocess.Popen(command, shell=True)
+	else:
+		print('Warning the device is not connected')
+	#controllo.close()	
+
+def killscreenshot():
+	global killscreenshot
+	command = "pkill screenshot.sh"
+	subprocess.Popen(command, shell=True)
+
+def screenrecord():
+	
+	os.chdir(os.path.expanduser('~'))
+	
+	global screenshot
+	
+	command = ('adb devices -l > stdout.csv')
+	stdout = subprocess.Popen(command, shell=True)
+	time.sleep(2)
+	controllo = open('stdout.csv', 'r').read()
+	
+	
+	print('=========================================')
+	
+	print((controllo))
+	print('=========================================')
+	print('                                         ')
+	
+	if "device usb" in (controllo):
+		print('mobile device is connected!.... YOU ROCK')
+		os.chdir(os.path.expanduser('~'))
+		command = ('rm -f stdout.csv')
+		stdout = subprocess.Popen(command, shell=True)
+		
+		os.chdir(os.path.expanduser('/usr/local/bin/'))
+		command = ('./screenrecord.sh')
+		subprocess.Popen(command, shell=True)
+	else:
+		print('Warning the device is not connected')
+	#controllo.close()	
+
+def killscreenrecord():
+	global killscreenrecord
+	command = ("pkill screenrecord.sh")
+	subprocess.Popen(command, shell=True)
+
+def compressandhash():
+	os.chdir(os.path.expanduser('~/02.computer_vision/04.video2ocr/'))
+
+	command = ('echo "You have chosen to calculate all Hash, this task could take some time, please wait..."')
+	subprocess.Popen(command, shell=True)
+	command = ('tgz compressfiles/screenrecord.tar.gz screenrecord/')
+	subprocess.Popen(command, shell=True)
+	command = ('tgz compressfiles/screenshot.tar.gz screenshot/')
+	subprocess.Popen(command, shell=True)
+
+	command = ('md5sum compressfiles/screenshot.tar.gz >> hashfiles/hash_screenshot.txt')
+	subprocess.Popen(command, shell=True)	
+
+	command = ('sha256sum compressfiles/screenshot.tar.gz >> hashfiles/hash_screenshot.txt')
+	subprocess.Popen(command, shell=True)	
+
+	command = ('md5sum compressfiles/screenrecord.tar.gz >> hashfiles/hash_screenrecord.txt')
+	subprocess.Popen(command, shell=True)
+
+	command = ('sha256sum compressfiles/screenrecord.tar.gz >> hashfiles/hash_screenrecord.txt')
+	subprocess.Popen(command, shell=True)
+
+	command = ('less hashfiles/hash_screenrecord.txt')
+	subprocess.Popen(command, shell=True)
+	command = ('less hashfiles/hash_screenshot.txt')
+	subprocess.Popen(command, shell=True)
+
+	command = ('echo "################"')
+	subprocess.Popen(command, shell=True)
+
+	command = ('ANDROID_ID=$(adb shell settings get secure android_id) && mkdir $ANDROID_ID && mv compressfiles/* $ANDROID_ID/ && mv hashfiles/* $ANDROID_ID/ && mv screenrecord/ $ANDROID_ID/  && mv screenshot/ $ANDROID_ID/ && mv temp.png temp1.png $ANDROID_ID/')
+	subprocess.Popen(command, shell=True)
+
+###################################################################
+	print(("""\
+___________________________________
+	( TRANSLATED IN PYTHON BY              )
+	( VISION                              )
+	-------------------------------------
+		""").encode('utf-8'))
+	command = "echo '                                                  '"
+	subprocess.Popen(command, shell=True)	
+	time.sleep(2.0)
+		
+	command = "jp2a /usr/share/icons/tsurugi/tsurugi.jpg"
+	subprocess.Popen(command, shell=True)	
+	command = "echo '                                                  '"
+	subprocess.Popen(command, shell=True)	
+	time.sleep(2.0)
+
+#	print(("""\
+#	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#	;;;;;;;;;;;;;;;;;;;;l0Oo;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#	;;;;;;;;;;;;;;;;;;;;:0WW0d:;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#	;;;;;;;;;;;;;;;;;;;;:OMMMWk;;;;;;;;;;;;;;;;;;:lldolc:;;;;;;;
+#	;;;;;;;;;;;;;;;;;;;;kMMMMM0;;;;;;;;;;;;;;;;;cOWMMMMWk;;;;;;;
+#	;;;;;;;;;;;;;;;;;;;cXMMMMMk;;;;;;;;;;;;;;;;dXMNNMMMMO;;;;;;;
+#	;;;;;;;;;;;;;;;;;;oKMMMMW0c;;;;;;;;;;;;;;;oNM0ckMMMWd;;;;;;;
+#	;;;;;;;;;;;;;;;;;oNMMMMXo:;;;;;;;;;;;;;;;;OMMocOMMMO:;;;;;;;
+#	;;;;;;;;;;;;;;;;lXMMMMXo:cllollll:;;;;;;;oXN0cxWMMMk;;;;;;;;
+#	;;;;;;;;;;;;;;;dXMMMMMXKKNWWMMMMMKxo:;;;;kWx:;kMMMNx;;;;;;;;
+#	;;;;;;;;;;;;;;oXMMMM0olldxk0KNMMMMMWKl;;c0O:;;kMMMO:;;;;;;;;
+#	;;;;;;;;;;;;:oXMMMKd:;;;;;;;;dNMMMMMNd;cKMd;;:OMMMk:;;;;;;;;
+#	;;;;;;;;;;:d0WMMM0c;:odOKKO0K0kkk0KOl;c0MNo;;oNMMNx:;;;;;;;;
+#	;;;;;;;:okKWMMMNOkO0KMMMMMMMXo;;:d0K0k0MWk:;;dMMM0c:;;;;;;;;
+#	;;;;dKKXWMMMMMKo:OMMMMMMMMMMKkxolx0NMMMMO:;;;dMMMO:;;;;;;;;;
+#	;;;;:odOXXK0xxdx0N0kXMMMMMMMMMMMNl;kMMMKc;;;;dMMMk;;;;;;;;;;
+#	;;;;;;;:c:;:xXWX00O0NMMMX0k0WMMMXl;kMMM0;;;;;dMMMk;;;;;;;;;;
+#	;;;;;;;;;;;dMM0OKWMMWMMMN0OKWWX0l;lKMMM0;;;;;dMMMk;;;;;;;;;;
+#	;;;;;;;;;;;lXMMMMMMN0MMMMMXOkl:;;;dNMMM0;;;;;dMMMk;;;;;;;;;;
+#	;;;;;;;;;;;;xWMMMXONMMMMMMMWOc;;;;:kMMM0;;;;;dMMMk;;;;;;;;;;
+#	;;;;;;;;;;;;:kWMMk;kWMMN00koc;;;::;cXMWk;;;;;oMMMk;;;;;;;;;;
+#	;;;;;;;;;;;;;:lll:cOMMMO;;;;;;;dKo;;xWO:;;;;;dMMMk;;;;;;;;;;
+#	;;;;;;;;;;;;;;;;;cKWMMNxlc;;;:dKXl;;:lc;;;;;;OMMMk;;;;;;;;;;
+#	;;;;;;;;;;;;;cokOXMMMMWWWNXOk0MMO:;;;;cdllc:lKMMMk;;;;;;;;;;
+#	;;;;;;;;;;;;oXMMMMMMXxodk0NMMMMMO:;;;;:0MWXXWMMMNd;;;;;;;;;;
+#	;;;;;;;;;;;;kMMMMMMNd;;;;;oXMMMMNo;;;;;lKMMMMMMM0:;;;;;;;;;;
+#	;;;;;;;;;;;c0MMMMWOl;;;;;;;cxNMW0c;;;;;;:kWMMMMMx;;;;;;;;;;;
+#	;;;;;;;;;;;;kMMMNd;;;;;;;;;;;dKk:;;;;;;;;;0MMMWXl;;;;;;;;;;;
+#	;;;;;;;;;;;;lOOdc;;;;;;;;;;;;;:;;;;;;;;;;;xNMXo:;;;;;;;;;;;;
+#	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;lko;;;;;;;;;;;;;;
+#
+#		""").encode('utf-8'))
+
+	print(("""\
+	'af':'afrikaans','sq':'albanian','am':'amharic','ar':'arabic','hy':'armenian','az':'azerbaijani',
+	'eu': 'basque','be':'belarusian','bn':'bengali','bs':'bosnian','bg':'bulgarian','ca':'catalan',
+	'ceb':'cebuano','ny':'chichewa','zh-cn':'chinese(simplified)','zh-tw':'chinese(traditional)',
+	'co':'corsican','hr':'croatian','cs':'czech','da':'danish','nl':'dutch','en':'english',
+	'eo':'esperanto','et':'estonian','tl':'filipino','fi':'finnish','fr':'french','fy':'frisian',
+	'gl':'galician','ka':'georgian','de':'german','el':'greek','gu': 'gujarati','ht':'haitian creole',
+	'ha':'hausa','haw':'hawaiian','iw':'hebrew','hi':'hindi','hmn':'hmong','hu':'hungarian',
+	'is':'icelandic','ig':'igbo','id':'indonesian','ga':'irish','it': 'italian','ja': 'japanese',
+	'jw':'javanese','kn':'kannada','kk':'kazakh','km':'khmer','ko':'korean','ku': 'kurdish (kurmanji)',
+	'ky':'kyrgyz','lo':'lao','la':'latin','lv':'latvian','lt':'lithuanian','lb':'luxembourgish',
+	'mk':'macedonian','mg':'malagasy','ms':'malay','ml':'malayalam','mt':'maltese','mi':'maori',
+	'mr':'marathi','mn':'mongolian',  'my':'myanmar (burmese)','ne':'nepali','no':'norwegian','ps':'pashto',
+	'fa':'persian','pl':'polish',     'pt':'portuguese','pa':'punjabi','ro':'romanian','ru': 'russian',
+	'sm':'samoan','gd':scots gaelic','sr':'serbian','st':'sesotho','sn':'shona','sd':'sindhi',
+	'si':'sinhala','sk':'slovak','sl':'slovenian','so':'somali','es':'spanish','su':'sundanese',    
+	'sw':swahili','sv':'swedish','tg':'tajik','ta':'tamil','te':'telugu','th': 'thai',
+	'tr':'turkish','uk':'ukrainian','ur':'urdu','uz':'uzbek','vi':'vietnamese','cy':'welsh',
+	'xh':'xhosa','yi':'yiddish','yo':'yoruba','zu':'zulu','fil':'Filipino','he':'Hebrew'
+
+		""").encode('utf-8'))
+	command = "echo '                                                  '"
+	subprocess.Popen(command, shell=True)		
+	time.sleep(2.0)	
+
+###################################################################
+
+
+	command = "cowthink -f daemon 'to install all language you can use         #sudo aptitude tesseract-ocr-all       ................ By Visi@n'"
+	subprocess.Popen(command, shell=True)
+
+root = tk.Tk()
+frame = tk.Frame(root)
+frame.pack()
+root.wm_title("Adb2rec-gui  Mobile Forensic")
+root.geometry("340x400")
+
+
+
+
+slogan = tk.Button(frame,
+				text="ADB CONNECT CABLE MOBILE FOR WIFI",
+				fg="#FFFFFF",
+				bg="#1919EE",
+				command=adb_connect_cable)
+slogan.pack(ipadx=16, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="ADB CONNECT LOCAL MOBILE IP WIFI",
+				fg="#FFFFFF",
+				bg="#1919EE",
+				command=adb_connect_ip_wifi)
+slogan.pack(ipadx=22, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="SCREENSHOT",
+				fg="#FFFFFF",
+				bg="#191988",
+				command=screenshot)
+slogan.pack(ipadx=95, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="SCREENSHOT UP",
+				fg="#FFFFFF",
+				bg="#191988",
+				command=screenshot_up)
+slogan.pack(ipadx=84, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="SCREENSHOT DOWN",
+				fg="#FFFFFF",
+				bg="#191988",
+				command=screenshot_down)
+slogan.pack(ipadx=72, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="STOP SCREENSHOT",
+				fg="#ffffff",
+				bg="#191988",
+				command=killscreenshot)
+slogan.pack(ipadx=77, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="SCREEN RECORD",
+				fg="#FFFFFF",
+				bg="#191922",
+				command=screenrecord)
+slogan.pack(ipadx=84, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="STOP SCREEN RECORD",
+				fg="#ffffff",
+				bg="#191922",
+				command=killscreenrecord)
+slogan.pack(ipadx=67, ipady=4, pady=1)
+
+slogan = tk.Button(frame,
+				text="COMPRESS FILES AND CALCULATE HASH",
+				fg="#88ffff",
+				bg="#6960EC",
+				command=compressandhash)
+slogan.pack(ipadx=11, ipady=4, pady=1)#ipadx=11
+
+
+############################
+
+
+###########################
+
+label = tk.Label(text="Visi@n",
+				fg="blue",
+				font=("helvetica",12),
+					)
+label.pack(ipadx=15, ipady=8, pady=15, padx=10)
+label.place(x=250, y=370)
+
+root.mainloop()

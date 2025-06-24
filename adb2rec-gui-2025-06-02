@@ -1,0 +1,284 @@
+#!/opt/virtualenv/computer_vision/bin/python3
+
+# by Antonio 'Visi@n' Broi - antonio@tsurugi-linux.org
+# https://tsurugi-linux.org
+# Version 0.8 Beta
+# 20250603-h1410
+
+# LICENSE M.I.T. https://opensource.org/licenses/MIT
+
+import sys
+from datetime import datetime
+import os
+import subprocess
+import time
+import socket
+import argparse
+import locale
+import tkinter as tk
+import shutil
+import threading
+
+os.environ["PYTHONIOENCODING"] = "utf-8"
+try:
+    locale.setlocale(category=locale.LC_ALL, locale="en_US.UTF-8")
+except locale.Error:
+    locale.setlocale(category=locale.LC_ALL, locale="C.UTF-8")
+
+if subprocess.call("command -v jp2a > /dev/null", shell=True) == 0:
+    subprocess.Popen("jp2a /usr/share/icons/tsurugi/tsurugi.jpg", shell=True)
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-d", "--daemon", default="d")
+ap.add_argument("-1", "--lang1", default="en")
+ap.add_argument("-2", "--lang2", default="fr")
+ap.add_argument("-3", "--lang3", default="it")
+ap.add_argument("-4", "--lang4", default="es")
+ap.add_argument("-t", "--time", default=int(3))
+args = vars(ap.parse_args())
+
+base_dir = os.path.expanduser('~/02.computer_vision/04.video2ocr/')
+subdirs = ['screenshot', 'screenrecord', 'compressfiles', 'hashfiles']
+
+for sub in subdirs:
+    os.makedirs(os.path.join(base_dir, sub), exist_ok=True)
+
+os.chdir(base_dir)
+
+screenshot_stop_event = threading.Event()
+screenrecord_stop_event = threading.Event()
+screenshot_thread = None
+screenrecord_thread = None
+
+def is_device_connected():
+    try:
+        output = subprocess.check_output(['adb', 'get-state'], stderr=subprocess.DEVNULL).decode().strip()
+        return output == 'device'
+    except subprocess.CalledProcessError:
+        return False
+
+def adb_connect_cable():
+    print("You have chosen ADB Connect cable, please wait...")
+    subprocess.run(['adb', 'devices', '-l'])
+    subprocess.run(['adb', 'tcpip', '7777'])
+    print("Now you can disconnect the cable and use the WiFi network")
+
+def adb_connect_ip_wifi():
+    print("You have chosen ADB Connect wifi")
+    ip = input("Insert the local IP address of your Mobile Phone: ")
+    try:
+        socket.inet_aton(ip)
+        print("Valid IP")
+        subprocess.run(['adb', 'connect', f'{ip}:7777'])
+    except socket.error:
+        print("Invalid IP")
+
+def screenshot_loop(direction=None):
+    if not is_device_connected():
+        print("⚠️ Nessun dispositivo collegato via USB.")
+        return
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    working_dir = os.path.join(base_dir, "screenshot", timestamp)
+    os.makedirs(working_dir, exist_ok=True)
+
+    print("📸 Screenshot attivo. Premi STOP SCREENSHOT per uscire.")
+    x = 1
+    while not screenshot_stop_event.is_set():
+        png_path = os.path.join(working_dir, f"{x}.png")
+        with open(png_path, 'wb') as f:
+            subprocess.run(['adb', 'exec-out', 'screencap', '-p'], stdout=f)
+
+        if direction == 'up':
+            subprocess.run(['adb', 'shell', 'input', 'touchscreen', 'swipe', '300', '300', '500', '1000'])
+        elif direction == 'down':
+            subprocess.run(['adb', 'shell', 'input', 'touchscreen', 'swipe', '500', '800', '300', '300'])
+
+        temp_path = os.path.join(base_dir, 'temp.png')
+        shutil.copy(png_path, temp_path)
+        shutil.copy(temp_path, os.path.join(base_dir, 'temp1.png'))
+        print(f"🖼️ Screenshot {x} salvato.")
+        x += 1
+
+
+def start_screenshot_loop(direction=None):
+    global screenshot_thread
+    screenshot_stop_event.clear()
+    screenshot_thread = threading.Thread(target=screenshot_loop, args=(direction,))
+    screenshot_thread.start()
+
+def killscreenshot():
+    print("🔴 STOP SCREENSHOT richiesto")
+    screenshot_stop_event.set()
+
+
+
+import threading
+import signal
+
+stop_screenrecord_event = threading.Event()
+
+def screenrecord_loop():
+    base_dir = os.path.expanduser('~/02.computer_vision/04.video2ocr')
+    screenrecord_dir = os.path.join(base_dir, 'screenrecord')
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    session_dir = os.path.join(screenrecord_dir, timestamp)
+    os.makedirs(session_dir, exist_ok=True)
+
+    x = 1
+    print("📹 Hai scelto Screenrecord - premi STOP per terminare")
+
+    while not stop_screenrecord_event.is_set():
+        remote_filename = f"/sdcard/{x}.mp4"
+        local_filename = f"{x}.mp4"
+        local_path = os.path.join(session_dir, local_filename)
+
+        try:
+            print(f"🎬 Registrazione in corso… (può essere fermata in qualsiasi momento)")
+            proc = subprocess.Popen(["adb", "shell", "screenrecord", remote_filename])
+
+            while proc.poll() is None:
+                if stop_screenrecord_event.is_set():
+                    print("🛑 Interrompo screenrecord con SIGINT…")
+                    proc.send_signal(signal.SIGINT)
+                    try:
+                        proc.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                    break
+                time.sleep(1)
+
+            subprocess.run(["adb", "pull", remote_filename, local_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["adb", "shell", "rm", remote_filename], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            if os.path.exists(local_path):
+                print(f"✅ Video salvato: {local_path}")
+
+                for _ in range(10):
+                    if os.path.getsize(local_path) > 10000:
+                        break
+                    time.sleep(0.5)
+
+                preview_path = os.path.join(base_dir, 'tempRecVideo.png')
+                subprocess.run([
+                    'ffmpeg', '-y',
+                    '-i', local_path,
+                    '-ss', '00:00:03.000',
+                    '-vframes', '1',
+                    preview_path
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                if os.path.exists(preview_path):
+                    print(f"📷 Anteprima salvata in: {preview_path}")
+                    #subprocess.Popen(['xdg-open', preview_path])
+                else:
+                    print("⚠️  Frame non estratto")
+            else:
+                print("⚠️  Nessun file video trovato")
+
+        except Exception as e:
+            print(f"❌ Errore screenrecord: {e}")
+
+        x += 1
+
+def start_screenrecord_loop():
+    global screenrecord_thread
+    screenrecord_stop_event.clear()
+    screenrecord_thread = threading.Thread(target=screenrecord_loop)
+    screenrecord_thread.start()
+
+def killscreenrecord():
+    print("🔴 STOP SCREEN RECORD richiesto")
+    screenrecord_stop_event.set()
+
+def compressandhash():
+    import shutil
+    import hashlib
+
+    base_dir = os.path.expanduser('~/02.computer_vision/04.video2ocr/')
+    screenshot_dir = os.path.join(base_dir, 'screenshot')
+    screenrecord_dir = os.path.join(base_dir, 'screenrecord')
+    compress_dir = os.path.join(base_dir, 'compressfiles')
+    hash_dir = os.path.join(base_dir, 'hashfiles')
+
+    # Ricrea le cartelle se mancanti
+    os.makedirs(compress_dir, exist_ok=True)
+    os.makedirs(hash_dir, exist_ok=True)
+
+    print("You have chosen to calculate all Hash, this task could take some time, please wait...")
+
+    # Comprime screenshot/
+    tar_screenshot = os.path.join(compress_dir, 'screenshot.tar.gz')
+    if os.path.exists(tar_screenshot):
+        os.remove(tar_screenshot)
+    subprocess.run(['tar', '-czf', tar_screenshot, '-C', base_dir, 'screenshot'])
+
+    # Comprime screenrecord/
+    tar_screenrecord = os.path.join(compress_dir, 'screenrecord.tar.gz')
+    if os.path.exists(tar_screenrecord):
+        os.remove(tar_screenrecord)
+    subprocess.run(['tar', '-czf', tar_screenrecord, '-C', base_dir, 'screenrecord'])
+
+    # Calcola hash screenshot
+    with open(os.path.join(hash_dir, 'hash_screenshot.txt'), 'w') as f:
+        md5 = hashlib.md5(open(tar_screenshot, 'rb').read()).hexdigest()
+        sha = hashlib.sha256(open(tar_screenshot, 'rb').read()).hexdigest()
+        f.write(f"MD5: {md5}\nSHA256: {sha}\n")
+
+    # Calcola hash screenrecord
+    with open(os.path.join(hash_dir, 'hash_screenrecord.txt'), 'w') as f:
+        md5 = hashlib.md5(open(tar_screenrecord, 'rb').read()).hexdigest()
+        sha = hashlib.sha256(open(tar_screenrecord, 'rb').read()).hexdigest()
+        f.write(f"MD5: {md5}\nSHA256: {sha}\n")
+
+    # Recupera ID Android
+    try:
+        result = subprocess.run(['adb', 'shell', 'settings', 'get', 'secure', 'android_id'], capture_output=True, text=True)
+        android_id = result.stdout.strip()
+    except Exception as e:
+        print(f"Errore nel recuperare ANDROID_ID: {e}")
+        android_id = "UNKNOWN"
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    final_dir = os.path.join(base_dir, f"{android_id}-{timestamp}")
+    os.makedirs(final_dir, exist_ok=True)
+
+    # Sposta tutto
+    for path in [screenshot_dir, screenrecord_dir, compress_dir, hash_dir]:
+        if os.path.exists(path):
+            shutil.move(path, final_dir)
+
+    for temp_file in ['temp.png', 'temp1.png', 'tempRecVideo.png']:
+        temp_path = os.path.join(base_dir, temp_file)
+        if os.path.exists(temp_path):
+            shutil.move(temp_path, final_dir)
+
+    print(f"Tutti i file sono stati spostati in: {final_dir}")
+
+# compressandhash() rimane invariata e già presente nel file
+# GUI aggiornata con i nuovi handler di avvio/stop
+
+root = tk.Tk()
+root.title("Adb2rec-gui Mobile Forensic")
+root.geometry("360x600")
+
+buttons = [
+    ("ADB CONNECT CABLE MOBILE FOR WIFI", adb_connect_cable, "#1919EE"),
+    ("ADB CONNECT LOCAL MOBILE IP WIFI", adb_connect_ip_wifi, "#1919EE"),
+    ("SCREENSHOT (NORMAL)", lambda: start_screenshot_loop(), "#191988"),
+    ("SCREENSHOT UP", lambda: start_screenshot_loop('up'), "#191988"),
+    ("SCREENSHOT DOWN", lambda: start_screenshot_loop('down'), "#191988"),
+    ("STOP SCREENSHOT", killscreenshot, "#191988"),
+    ("SCREEN RECORD", start_screenrecord_loop, "#191922"),
+    ("STOP SCREEN RECORD", killscreenrecord, "#191922"),
+    ("COMPRESS FILES AND CALCULATE HASH", compressandhash, "#6960EC")
+]
+
+for text, cmd, color in buttons:
+    btn = tk.Button(root, text=text, command=cmd, fg="white", bg=color)
+    btn.pack(pady=4, ipadx=10, ipady=4, fill='x')
+
+label = tk.Label(root, text="Visi@n", fg="blue", font=("Helvetica", 12))
+label.pack(pady=15)
+
+root.mainloop()
